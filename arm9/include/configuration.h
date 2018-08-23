@@ -21,6 +21,7 @@ typedef struct configuration {
 	bool boostCpu;
 	bool gameSoftReset;
 	bool asyncPrefetch;
+	bool extendedCache;
 	bool soundFix;
 	bool logging;
 	bool initDisc;

@@ -21,6 +21,7 @@
 .global consoleModel
 .global romread_LED
 .global gameSoftReset
+@.global extendedCache
 .global soundFix
 
 #define ICACHE_SIZE	0x2000
@@ -54,6 +55,8 @@ romread_LED:
 	.word	0x00000000
 gameSoftReset:
 	.word	0x00000000
+@extendedCache:
+@	.word	0x00000000
 soundFix:
 	.word	0x00000000
 cheat_data_offset:    

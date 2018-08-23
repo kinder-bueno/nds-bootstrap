@@ -89,6 +89,10 @@ static int callback(const char *section, const char *key, const char *value, voi
 		// Async prefetch
 		conf->asyncPrefetch = (bool)strtol(value, NULL, 0);
 
+	//} else if (match(section, "NDS-BOOTSTRAP", key, "EXTENDED_CACHE")) {
+		// Extended cache
+	//	conf->extendedCache = (bool)strtol(value, NULL, 0);
+
 	} else if (match(section, "NDS-BOOTSTRAP", key, "SOUND_FIX")) {
 		// Sound fix
 		conf->soundFix = (bool)strtol(value, NULL, 0);

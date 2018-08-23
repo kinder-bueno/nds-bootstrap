@@ -64,6 +64,7 @@
 
 #include "cardengine_arm7_bin.h"
 #include "cardengine_arm9_bin.h"
+#include "cardengine_arm9_dsiwram_bin.h"
 
 //#define memcpy __builtin_memcpy
 
@@ -92,6 +93,8 @@ extern u32 gameSoftReset;
 extern u32 asyncPrefetch;
 extern u32 soundFix;
 //extern u32 logging;
+
+static u32 cardEngine9Location = NULL;
 
 static void initMBK(void) {
 	// Give all DSi WRAM to ARM7 at boot
@@ -362,7 +365,12 @@ static void loadBinary_ARM7(const tDSiHeader* dsiHeaderTemp, aFile file, bool ds
 	// Fix Pokemon games needing header data.
 	//fileRead((char*)0x027FF000, file, 0, 0x170, 3);
 	//memcpy((char*)0x027FF000, &dsiHeaderTemp.ndshdr, sizeof(dsiHeaderTemp.ndshdr));
-	tNDSHeader* ndsHeaderPokemon = (tNDSHeader*)NDS_HEADER_POKEMON;
+	tNDSHeader* ndsHeaderPokemon = NULL;
+	//if (extendedCache) {
+		ndsHeaderPokemon = (tNDSHeader*)NDS_HEADER_4MB_POKEMON;
+	//} else {
+	//	ndsHeaderPokemon = (tNDSHeader*)NDS_HEADER_POKEMON;
+	//}
 	*ndsHeaderPokemon = dsiHeaderTemp->ndshdr;
 
 	const char* romTid = getRomTid(&dsiHeaderTemp->ndshdr);
@@ -397,23 +405,33 @@ static module_params_t* loadModuleParams(const tNDSHeader* ndsHeader, bool* foun
 		// Found module params
 		//*(vu32*)0x2800008 = ((u32)moduleParamsOffset - 0x8);
 		//*(vu32*)0x2800008 = (vu32)(moduleParamsOffset - 2);
-		*(vu32*)0x2800008 = (vu32)((u32*)moduleParams + 5); // (u32*)moduleParams + 7 - 2
+		//if (!extendedCache) *(vu32*)0x2800008 = (vu32)((u32*)moduleParams + 5); // (u32*)moduleParams + 7 - 2
 	} else {
 		nocashMessage("No moduleparams?\n");
 		moduleParams = buildModuleParams(donorSdkVer);
-		*(vu32*)0x2800010 = 1;
+		//if (!extendedCache) *(vu32*)0x2800010 = 1;
 	}
 	return moduleParams;
 }
 
 static bool isROMLoadableInRAM(const tNDSHeader* ndsHeader, const module_params_t* moduleParams, u32 consoleModel) {
-	return ((isSdk5(moduleParams) && consoleModel > 0 && getRomSizeNoArm9(ndsHeader) <= 0x01000000)
-		|| (!isSdk5(moduleParams) && consoleModel > 0 && getRomSizeNoArm9(ndsHeader) <= 0x017FC000)
-		|| (!isSdk5(moduleParams) && consoleModel == 0 && getRomSizeNoArm9(ndsHeader) <= 0x007FC000));
+	//if (extendedCache) {
+		return ((consoleModel > 0 && getRomSizeNoArm9(ndsHeader) <= 0x01C00000)
+			|| (consoleModel == 0 && getRomSizeNoArm9(ndsHeader) <= 0x00C00000));
+	//} else {
+	//	return ((isSdk5(moduleParams) && consoleModel > 0 && getRomSizeNoArm9(ndsHeader) <= 0x01000000)
+	//		|| (!isSdk5(moduleParams) && consoleModel > 0 && getRomSizeNoArm9(ndsHeader) <= 0x017FC000)
+	//		|| (!isSdk5(moduleParams) && consoleModel == 0 && getRomSizeNoArm9(ndsHeader) <= 0x007FC000));
+	//}
 }
 
 static vu32* storeArm9StartAddress(tNDSHeader* ndsHeader, const module_params_t* moduleParams) {
-	vu32* arm9StartAddress = (vu32*)(isSdk5(moduleParams) ? ARM9_START_ADDRESS_SDK5_LOCATION : ARM9_START_ADDRESS_LOCATION);
+	vu32* arm9StartAddress = NULL;
+	//if (extendedCache) {
+		arm9StartAddress = (vu32*)(ARM9_START_ADDRESS_4MB_LOCATION);
+	//} else {
+	//	arm9StartAddress = (vu32*)(isSdk5(moduleParams) ? ARM9_START_ADDRESS_SDK5_LOCATION : ARM9_START_ADDRESS_LOCATION);
+	//}
 
 	// Store for later
 	*arm9StartAddress = (vu32)ndsHeader->arm9executeAddress;
@@ -425,7 +443,12 @@ static vu32* storeArm9StartAddress(tNDSHeader* ndsHeader, const module_params_t*
 }
 
 static tNDSHeader* loadHeader(tDSiHeader* dsiHeaderTemp, const module_params_t* moduleParams, bool dsiMode) {
-	tNDSHeader* ndsHeader = (tNDSHeader*)(isSdk5(moduleParams) ? NDS_HEADER_SDK5 : NDS_HEADER);
+	tNDSHeader* ndsHeader = NULL;
+	//if (extendedCache) {
+		ndsHeader = (tNDSHeader*)(NDS_HEADER_4MB);
+	//} else {
+	//	ndsHeader = (tNDSHeader*)(isSdk5(moduleParams) ? NDS_HEADER_SDK5 : NDS_HEADER);
+	//}
 
 	// Copy the header to its proper location
 	//dmaCopyWords(3, &dsiHeaderTemp.ndshdr, (char*)ndsHeader, 0x170);
@@ -470,7 +493,12 @@ static void NTR_BIOS() {
 }
 
 static void loadROMintoRAM(const tNDSHeader* ndsHeader, const module_params_t* moduleParams, aFile file) {
-	char* romLocation = (char*)(isSdk5(moduleParams) ? ROM_SDK5_LOCATION : ROM_LOCATION);
+	char* romLocation = NULL;
+	//if (extendedCache) {
+		romLocation = (char*)(EXTENDED_ROM_LOCATION);
+	//} else {
+	//	romLocation = (char*)(isSdk5(moduleParams) ? ROM_SDK5_LOCATION : ROM_LOCATION);
+	//}
 
 	// Load ROM into RAM
 	fileRead(romLocation, file, 0x4000 + ndsHeader->arm9binarySize, getRomSizeNoArm9(ndsHeader), 0);
@@ -617,7 +645,14 @@ int arm7_main(void) {
 	// 4 dots
 	//
 
-	memcpy((u32*)CARDENGINE_ARM9_LOCATION, (u32*)cardengine_arm9_bin, cardengine_arm9_bin_size);
+
+	//if (extendedCache) {
+		cardEngine9Location = CARDENGINE_ARM9_4MB_LOCATION;
+		memcpy((u32*)CARDENGINE_ARM9_4MB_LOCATION, (u32*)cardengine_arm9_dsiwram_bin, cardengine_arm9_dsiwram_bin_size);
+	//} else {
+	//	cardEngine9Location = CARDENGINE_ARM9_LOCATION;
+	//	memcpy((u32*)CARDENGINE_ARM9_LOCATION, (u32*)cardengine_arm9_bin, cardengine_arm9_bin_size);
+	//}
 	increaseLoadBarLength();
 
 	//
@@ -626,7 +661,7 @@ int arm7_main(void) {
 	patchBinary(ndsHeader);
 	errorCode = patchCardNds(
 		(cardengineArm7*)CARDENGINE_ARM7_LOCATION,
-		(cardengineArm9*)CARDENGINE_ARM9_LOCATION,
+		(cardengineArm9*)cardEngine9Location,
 		ndsHeader,
 		moduleParams,
 		patchMpuRegion,
@@ -659,6 +694,7 @@ int arm7_main(void) {
 		consoleModel,
 		romread_LED,
 		gameSoftReset,
+		//extendedCache,
 		soundFix
 	);
 	if (errorCode == ERR_NONE) {
@@ -674,7 +710,7 @@ int arm7_main(void) {
 	//
 
 	hookNdsRetailArm9(
-		(cardengineArm9*)CARDENGINE_ARM9_LOCATION,
+		(cardengineArm9*)cardEngine9Location,
 		moduleParams,
 		ROMinRAM,
 		dsiModeConfirmed,

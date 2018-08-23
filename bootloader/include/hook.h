@@ -40,6 +40,7 @@ int hookNdsRetailArm7(
 	u32 consoleModel,
 	u32 romread_LED,
 	u32 gameSoftReset,
+	//u32 extendedCache,
 	u32 soundFix
 );
 int hookNdsRetailArm9(

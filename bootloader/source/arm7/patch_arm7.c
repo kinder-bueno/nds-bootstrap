@@ -175,11 +175,11 @@ u32 patchCardNdsArm7(
 			saveResult = savePatchUniversal(ce7, ndsHeader, moduleParams, saveFileCluster, saveSize);
 		}
 	}
-	if (saveResult == 1 && !ROMinRAM && saveSize > 0 && saveSize <= 0x00100000) {
-		aFile saveFile = getFileFromCluster(saveFileCluster);
-		char* saveLocation = (isSdk5(moduleParams) ? (char*)SAVE_SDK5_LOCATION : (char*)SAVE_LOCATION);
-		fileRead(saveLocation, saveFile, 0, saveSize, 3);
-	}
+	//if (saveResult == 1 && !ROMinRAM && !extendedCache && saveSize > 0 && saveSize <= 0x00100000) {
+	//	aFile saveFile = getFileFromCluster(saveFileCluster);
+	//	char* saveLocation = (isSdk5(moduleParams) ? (char*)SAVE_SDK5_LOCATION : (char*)SAVE_LOCATION);
+	//	fileRead(saveLocation, saveFile, 0, saveSize, 3);
+	//}
 
 	dbg_printf("ERR_NONE\n\n");
 	return ERR_NONE;

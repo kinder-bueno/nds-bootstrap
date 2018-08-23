@@ -58,6 +58,8 @@ extern u32 ROMinRAM;
 extern u32 consoleModel;
 extern u32 romread_LED;
 extern u32 gameSoftReset;
+//extern u32 extendedCache;
+static u32 extendedCache = 1;
 extern u32 soundFix;
 
 vu32* volatile sharedAddr = (vu32*)CARDENGINE_SHARED_ADDRESS;
@@ -125,10 +127,15 @@ static void initialize(void) {
 	dbg_printf("\n");
 	#endif
 
-	ndsHeader = (tNDSHeader*)(isSdk5(moduleParams) ? NDS_HEADER_SDK5 : NDS_HEADER);
-	romLocation = (char*)(isSdk5(moduleParams) ? ROM_SDK5_LOCATION : ROM_LOCATION);
+	if (extendedCache) {
+		ndsHeader = (tNDSHeader*)(NDS_HEADER_4MB);
+		romLocation = (char*)(EXTENDED_ROM_LOCATION);
+	} else {
+		ndsHeader = (tNDSHeader*)(isSdk5(moduleParams) ? NDS_HEADER_SDK5 : NDS_HEADER);
+		romLocation = (char*)(isSdk5(moduleParams) ? ROM_SDK5_LOCATION : ROM_LOCATION);
+	}
 	saveLocation = (char*)(isSdk5(moduleParams) ? SAVE_SDK5_LOCATION : SAVE_LOCATION);
-				
+
 	initialized = true;
 }
 
@@ -407,7 +414,7 @@ void myIrqHandlerVBlank(void) {
 
 	calledViaIPC = false;
 
-	if (language >= 0 && language < 6) {
+	if (initialized && language >= 0 && language < 6) {
 		// Change language
 		*(u8*)((u32)ndsHeader - 0x11C) = language;
 	}
@@ -650,10 +657,10 @@ void myIrqHandlerVBlank(void) {
 	}
 
 	#ifdef DEBUG
-	nocashMessage("cheat_engine_start\n");
+	//nocashMessage("cheat_engine_start\n");
 	#endif	
 	
-	cheat_engine_start();
+	//cheat_engine_start();
 }
 
 u32 myIrqEnable(u32 irq) {	
@@ -713,7 +720,7 @@ bool eepromRead(u32 src, void *dst, u32 len) {
 	dbg_hexa(len);
 	#endif	
 
-	if (!ROMinRAM && saveSize > 0 && saveSize <= 0x00100000) {
+	if (!ROMinRAM && !extendedCache && saveSize > 0 && saveSize <= 0x00100000) {
 		memcpy(dst, saveLocation + src, len);
 	} else if (lockMutex(&saveMutex)) {
 		initialize();
@@ -738,7 +745,7 @@ bool eepromPageWrite(u32 dst, const void *src, u32 len) {
 	if (lockMutex(&saveMutex)) {
 		initialize();
 		i2cWriteRegister(0x4A, 0x12, 0x01);		// When we're saving, power button does nothing, in order to prevent corruption.
-		if (!ROMinRAM && saveSize > 0 && saveSize <= 0x00100000) {
+		if (!ROMinRAM && !extendedCache && saveSize > 0 && saveSize <= 0x00100000) {
 			memcpy(saveLocation + dst, src, len);
 		}
 		fileWrite(src, *savFile, dst, len, -1);
@@ -763,7 +770,7 @@ bool eepromPageProg(u32 dst, const void *src, u32 len) {
 	if (lockMutex(&saveMutex)) {
 		initialize();
 		i2cWriteRegister(0x4A, 0x12, 0x01);		// When we're saving, power button does nothing, in order to prevent corruption.    
-		if (!ROMinRAM && saveSize > 0 && saveSize <= 0x00100000) {
+		if (!ROMinRAM && !extendedCache && saveSize > 0 && saveSize <= 0x00100000) {
 			memcpy(saveLocation + dst, src, len);
 		}
 		fileWrite(src, *savFile, dst, len, -1);

@@ -244,8 +244,14 @@ void arm9_main(void) {
 		REG_SCFG_EXT = 0x8307F100;
 	}
 
-	// lock SCFG
-	REG_SCFG_EXT &= ~(1UL << 31);
+	//if (extendedCache) {
+		if (!dsiModeConfirmed) {
+			REG_SCFG_EXT = 0x83000000;
+		}
+	//} else {
+		// lock SCFG
+		//REG_SCFG_EXT &= ~(1UL << 31);
+	//}
 
 	REG_IME = 0;
 	REG_EXMEMCNT = 0xE880;
