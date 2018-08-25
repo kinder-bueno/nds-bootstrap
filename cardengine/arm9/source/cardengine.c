@@ -28,6 +28,7 @@
 #include "module_params.h"
 #include "cardengine.h"
 #include "locations.h"
+#include "debug_file.h"
 
 #define _32KB_READ_SIZE  0x8000
 #define _64KB_READ_SIZE  0x10000
@@ -260,6 +261,7 @@ int cardRead(u32* cacheStruct, u8* dst0, u32 src0, u32 len0) {
 		cardStruct[0] = src;
 	}
 
+    dbg_printf("Read below 0x8000: \"%s\"\n", src);
 	if(src < 0x8000){
 		dbg_printf("Read below 0x8000: \"%s\"\n", src);
 		src = 0x8000+(src & 0x1FF);	// Fix reads below 0x8000
