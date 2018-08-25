@@ -263,6 +263,8 @@ int cardRead(u32* cacheStruct, u8* dst0, u32 src0, u32 len0) {
 
 	if(src < 0x8000){
 		dbg_printf("Read below 0x8000:\n");
+		dbg_hexa((u32)src);
+		dbg_printf("\n");
 		src = 0x8000+(src & 0x1FF);	// Fix reads below 0x8000
 	}
 	if (src == 0) {
